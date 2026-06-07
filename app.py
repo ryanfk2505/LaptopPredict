@@ -1,4 +1,4 @@
-# app.py - Laptop Recommendation System
+# app.py - Laptop Recommendation System (Fixed version)
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -20,22 +20,42 @@ st.title("💻 Laptop Recommendation System")
 st.markdown("### Temukan laptop terbaik sesuai budget dan kebutuhan Anda!")
 st.markdown("---")
 
-# Load model dan data
+# Load model dan data dengan error handling
 @st.cache_resource
 def load_models():
-    knn_model = joblib.load('laptop_recommender_model.pkl')
-    scaler = joblib.load('laptop_scaler.pkl')
-    label_encoders = joblib.load('laptop_label_encoders.pkl')
-    return knn_model, scaler, label_encoders
+    try:
+        # Coba load dengan joblib (lebih kompatibel)
+        knn_model = joblib.load('laptop_recommender_model.pkl')
+        scaler = joblib.load('laptop_scaler.pkl')
+        label_encoders = joblib.load('laptop_label_encoders.pkl')
+        return knn_model, scaler, label_encoders
+    except Exception as e:
+        st.error(f"Error loading models: {e}")
+        return None, None, None
 
 @st.cache_data
 def load_data():
-    df = pd.read_pickle('laptop_data_clean.pkl')
-    return df
+    try:
+        # Coba load dengan pickle dulu
+        df = pd.read_pickle('laptop_data_clean.pkl')
+        return df
+    except Exception as e1:
+        try:
+            # Jika gagal, coba dengan joblib
+            df = joblib.load('laptop_data_clean.pkl')
+            return df
+        except Exception as e2:
+            st.error(f"Error loading data: {e2}")
+            return None
 
 # Load semua file
 df_clean = load_data()
 knn_model, scaler, label_encoders = load_models()
+
+# Cek apakah loading berhasil
+if df_clean is None or knn_model is None:
+    st.error("❌ Gagal memuat model atau data. Pastikan semua file ada di direktori yang sama.")
+    st.stop()
 
 # Sidebar filters
 st.sidebar.header("🔍 Filter Pencarian")
